@@ -25,19 +25,16 @@ def submissions_endpoint():
     GET /api/sih/submissions
     Query params:
       - force (bool, e.g. ?force=true): bypass cache and fetch directly from SIH
+    Always returns HTTP 200 with data (fresh or stale cache fallback).
     """
     force = request.args.get("force", "").lower() in ("true", "1", "yes")
     result = get_live_submissions(force_refresh=force)
-    
-    # 200 OK even if stale fallback (result['stale'] indicates stale state)
-    status_code = 200 if result.get("success") else 503
-    return jsonify(result), status_code
+    return jsonify(result), 200
 
 @app.route("/api/sih/statements", methods=["GET"])
 def statements_endpoint():
     """
-    Returns the static 240 Problem Statements dataset directly from local storage,
-    providing high reliability if github.com is unreachable.
+    Returns the static 240 Problem Statements dataset directly from local storage.
     """
     if os.path.exists(STATEMENTS_JSON_PATH):
         try:
@@ -57,6 +54,11 @@ def health_endpoint():
         "sih_source": SIH_SOURCE_URL,
         "cache_ttl_seconds": CACHE_TTL_SECONDS
     }), 200
+
+@app.route("/favicon.ico", methods=["GET"])
+def favicon():
+    """Prevent 404 error in browser console for favicon."""
+    return "", 204
 
 @app.route("/", methods=["GET"])
 def root_index():

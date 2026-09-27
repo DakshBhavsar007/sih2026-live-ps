@@ -1,11 +1,20 @@
 import os
 import re
 import ssl
+import json
 import time
 import logging
 from datetime import datetime, timezone
 import urllib.request
 from bs4 import BeautifulSoup
+
+try:
+    import requests
+    import urllib3
+    urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+    HAS_REQUESTS = True
+except ImportError:
+    HAS_REQUESTS = False
 
 logger = logging.getLogger("sih_scraper")
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
@@ -14,17 +23,50 @@ SIH_SOURCE_URL = os.environ.get("SIH_SOURCE_URL", "https://www.sih.gov.in/sih202
 CACHE_TTL_SECONDS = int(os.environ.get("CACHE_TTL_SECONDS", "300"))
 SCRAPE_TIMEOUT_SECONDS = int(os.environ.get("SCRAPE_TIMEOUT_SECONDS", "20"))
 
-# In-memory cache storage
+def load_baseline_data():
+    """Load baseline dataset from sih2026_problem_statements.json so cache is never empty."""
+    json_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "sih2026_problem_statements.json")
+    if os.path.exists(json_path):
+        try:
+            with open(json_path, "r", encoding="utf-8") as f:
+                data = json.load(f)
+            items = data.get("problem_statements", [])
+            baseline = {}
+            for p in items:
+                ps_id = p.get("id")
+                si = p.get("submitted_ideas")
+                if ps_id and si:
+                    if isinstance(si, dict):
+                        cnt = si.get("count", si.get("submitted", 0))
+                        cap = si.get("capacity", 500)
+                        disp = si.get("raw", f"{cnt}/{cap}")
+                    else:
+                        m = re.search(r"(\d+)(?:\s*/\s*(\d+))?", str(si))
+                        cnt = int(m.group(1)) if m else 0
+                        cap = int(m.group(2)) if m and m.group(2) else 500
+                        disp = f"{cnt}/{cap}"
+                    baseline[ps_id] = {
+                        "submitted": cnt,
+                        "capacity": cap,
+                        "display": disp
+                    }
+            logger.info(f"Loaded {len(baseline)} baseline records into cache.")
+            return baseline
+        except Exception as e:
+            logger.warning(f"Could not load baseline dataset: {e}")
+    return {}
+
+# Pre-populate in-memory cache with baseline data so cold-start never fails with 503
 _cache = {
-    "data": None,
-    "updated_at": None,
+    "data": load_baseline_data(),
+    "updated_at": datetime.now(timezone.utc).isoformat(),
     "last_success_timestamp": 0
 }
 
 def fetch_sih_html(url=None, timeout=None):
     """
-    Fetch the raw HTML from the official SIH 2026 PS portal using a realistic browser User-Agent
-    and an SSL context tolerant of government certificate configurations.
+    Fetch the raw HTML from the official SIH 2026 PS portal using a realistic browser User-Agent.
+    Uses requests if available, with urllib as fallback.
     """
     target_url = url or SIH_SOURCE_URL
     req_timeout = timeout or SCRAPE_TIMEOUT_SECONDS
@@ -38,17 +80,30 @@ def fetch_sih_html(url=None, timeout=None):
         "Connection": "keep-alive"
     }
 
+    # Try requests first
+    if HAS_REQUESTS:
+        try:
+            logger.info(f"Fetching official SIH page via requests: {target_url} (timeout: {req_timeout}s)")
+            r = requests.get(target_url, headers=headers, timeout=req_timeout, verify=False)
+            if r.status_code == 200 and len(r.text) > 10000:
+                logger.info(f"Successfully fetched {len(r.text)} characters from SIH via requests.")
+                return r.text
+            logger.warning(f"requests returned HTTP {r.status_code}, falling back to urllib.")
+        except Exception as err:
+            logger.warning(f"requests failed: {err}, falling back to urllib.")
+
+    # Fallback to urllib
     ctx = ssl.create_default_context()
     ctx.check_hostname = False
     ctx.verify_mode = ssl.CERT_NONE
 
     req = urllib.request.Request(target_url, headers=headers)
-    logger.info(f"Fetching official SIH page from: {target_url} (timeout: {req_timeout}s)")
+    logger.info(f"Fetching official SIH page via urllib: {target_url} (timeout: {req_timeout}s)")
     with urllib.request.urlopen(req, context=ctx, timeout=req_timeout) as resp:
         if resp.status != 200:
             raise RuntimeError(f"SIH server returned HTTP {resp.status}")
         raw_html = resp.read().decode("utf-8", errors="ignore")
-        logger.info(f"Successfully fetched {len(raw_html)} bytes from SIH.")
+        logger.info(f"Successfully fetched {len(raw_html)} bytes from SIH via urllib.")
         return raw_html
 
 def parse_sih_html(html_content, fallback_data=None):
@@ -100,13 +155,11 @@ def parse_sih_html(html_content, fallback_data=None):
 
     results = {}
     if fallback_data:
-        # Shallow copy of previous counts so we never wipe valid data
         for k, v in fallback_data.items():
             results[k] = dict(v)
 
     # Process each row
     for tr in main_table.find_all("tr"):
-        # Use recursive=False to ignore modal dialog tables nested inside cell descriptions
         tds = tr.find_all("td", recursive=False)
         if not tds:
             continue
@@ -122,7 +175,6 @@ def parse_sih_html(html_content, fallback_data=None):
         capacity_val = 500
         display_val = None
 
-        # Strategy 1: Check detected submitted column index
         if 0 <= header_idx_submitted < len(tds):
             col_text = tds[header_idx_submitted].get_text(strip=True)
             m = re.search(r"(\d+)\s*/\s*(\d+)", col_text)
@@ -136,7 +188,6 @@ def parse_sih_html(html_content, fallback_data=None):
                     submitted_val = int(m_single.group(1))
                     display_val = f"{submitted_val}/{capacity_val}"
 
-        # Strategy 2: Fallback scan through all direct tds of the row
         if display_val is None:
             for td in tds:
                 col_text = td.get_text(strip=True)
@@ -153,9 +204,6 @@ def parse_sih_html(html_content, fallback_data=None):
                 "capacity": capacity_val,
                 "display": display_val
             }
-        elif ps_id not in results:
-            # If completely unparseable and not in previous cache, log warning
-            logger.warning(f"Could not parse submission count for {ps_id}")
 
     if not results:
         raise ValueError("Failed to extract any problem statement submission counts from SIH HTML.")
@@ -167,6 +215,7 @@ def get_live_submissions(force_refresh=False):
     """
     Retrieves live submission counts with:
     - 5-minute TTL caching
+    - Pre-populated baseline dataset (never returns empty or 503)
     - Graceful degradation if SIH portal is down/slow
     - Forced refresh option for manual 'Sync Now'
     """
@@ -208,27 +257,15 @@ def get_live_submissions(force_refresh=False):
         }
     except Exception as e:
         logger.error(f"Error fetching/parsing live SIH data: {e}")
-        # If we have existing cached data, return it marked as stale
-        if has_cache:
-            return {
-                "success": True,
-                "source": SIH_SOURCE_URL,
-                "updated_at": _cache["updated_at"],
-                "cached": True,
-                "stale": True,
-                "warning": "SIH sync unavailable — showing last successful data.",
-                "error": str(e),
-                "data": _cache["data"]
-            }
-        else:
-            # First fetch failed and no cache exists
-            return {
-                "success": False,
-                "source": SIH_SOURCE_URL,
-                "updated_at": None,
-                "cached": False,
-                "stale": True,
-                "error": "Live SIH data unavailable — showing stored dataset.",
-                "details": str(e),
-                "data": {}
-            }
+        # Always return valid cached/baseline data marked as stale, never empty
+        fallback = _cache["data"] or load_baseline_data()
+        return {
+            "success": True,
+            "source": SIH_SOURCE_URL,
+            "updated_at": _cache["updated_at"] or iso_now,
+            "cached": True,
+            "stale": True,
+            "warning": "SIH sync unavailable — showing last successful data.",
+            "error": str(e),
+            "data": fallback
+        }
