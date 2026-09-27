@@ -1,0 +1,1382 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SIH 2026 Problem Statements — 240 PS</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;font-family:Arial,Helvetica,sans-serif;background:#f2f2f2;color:#222}
+
+/* Universal Link Styling */
+a{color:#0284c7;text-decoration:underline;word-break:break-word;transition:color 0.15s ease;cursor:pointer}
+a:hover{color:#0369a1;text-decoration:underline}
+
+/* Topbar */
+.topbar{position:sticky;top:0;z-index:30;background:#111;color:#fff;padding:14px 20px;display:flex;align-items:center;justify-content:space-between;box-shadow:0 2px 8px #0004}
+.topbar-left{display:flex;align-items:center;gap:18px}
+.topbar h1{font-size:20px;margin:0}
+.topbar span{font-size:13px;color:#bbb}
+.topbar-right{display:flex;align-items:center;gap:14px}
+.bookmark-badge-link{display:flex;align-items:center;gap:6px;background:#222;border:1px solid #444;color:#f59e0b;padding:6px 12px;border-radius:4px;font-size:13px;cursor:pointer;user-select:none;transition:background 0.2s}
+.bookmark-badge-link:hover{background:#333}
+
+/* Main Layout */
+.app-layout{display:flex;min-height:calc(100vh - 54px);position:relative}
+
+/* Sidebar "Refine Results" */
+.sidebar{width:320px;min-width:320px;background:#fff;border-right:1px solid #ddd;padding:20px;display:flex;flex-direction:column;gap:18px;overflow-y:auto;position:sticky;top:54px;height:calc(100vh - 54px);z-index:20}
+.sidebar-header{display:flex;align-items:center;justify-content:space-between;padding-bottom:12px;border-bottom:1px solid #eee}
+.sidebar-header h2{font-size:17px;margin:0;color:#111;font-weight:bold;display:flex;align-items:center;gap:8px}
+.btn-reset{background:none;border:none;color:#0284c7;cursor:pointer;font-size:13px;padding:4px 6px;text-decoration:underline}
+.btn-reset:hover{color:#0369a1}
+.sidebar-close-btn{display:none;background:none;border:none;font-size:24px;cursor:pointer;color:#555}
+
+/* Filter Groups */
+.filter-group{display:flex;flex-direction:column;gap:8px}
+.filter-group label.group-title{font-size:13px;font-weight:bold;color:#444;text-transform:uppercase;letter-spacing:0.5px}
+.filter-group select{width:100%;padding:9px 11px;border:1px solid #bbb;border-radius:5px;font-size:13px;background:#fff;color:#222}
+.filter-group select:focus{outline:none;border-color:#111}
+
+/* Segmented Category Buttons */
+.segmented-group{display:flex;border:1px solid #ccc;border-radius:6px;overflow:hidden;background:#f5f5f5}
+.btn-segment{flex:1;border:none;background:#f5f5f5;color:#444;padding:8px 6px;font-size:12px;cursor:pointer;transition:all 0.2s;display:flex;align-items:center;justify-content:center;gap:4px;font-weight:500}
+.btn-segment:not(:last-child){border-right:1px solid #ccc}
+.btn-segment:hover{background:#e8e8e8}
+.btn-segment.active{background:#111;color:#fff}
+.btn-segment .pill-badge{background:#e0e0e0;color:#333;font-size:10px;padding:2px 5px;border-radius:10px;font-weight:bold}
+.btn-segment.active .pill-badge{background:#444;color:#fff}
+
+/* Technology Pills (Multi-Select) */
+.tech-tags-container{display:flex;flex-wrap:wrap;gap:6px}
+.tech-tag-pill{background:#f0f0f0;color:#444;border:1px solid #ddd;padding:5px 9px;border-radius:16px;font-size:11.5px;cursor:pointer;user-select:none;transition:all 0.15s ease;display:inline-flex;align-items:center;gap:4px}
+.tech-tag-pill:hover{background:#e2e2e2;border-color:#ccc}
+.tech-tag-pill.active{background:#111;color:#fff;border-color:#111}
+
+/* Attributes Checkboxes */
+.checkbox-list{display:flex;flex-direction:column;gap:8px}
+.checkbox-item{display:flex;align-items:center;gap:8px;font-size:13px;color:#333;cursor:pointer;user-select:none}
+.checkbox-item input[type="checkbox"]{cursor:pointer;accent-color:#111;width:15px;height:15px}
+
+/* Mobile Apply Button */
+.btn-apply-mobile{display:none;width:100%;padding:11px;background:#111;color:#fff;border:none;border-radius:5px;font-size:14px;font-weight:bold;cursor:pointer;margin-top:10px}
+
+/* Main Content Area */
+.main-content{flex:1;min-width:0;display:flex;flex-direction:column}
+
+/* Controls Topbar */
+.controls{padding:14px 20px;background:#fff;border-bottom:1px solid #ddd;display:flex;gap:10px;align-items:center;flex-wrap:wrap;position:sticky;top:54px;z-index:15}
+.controls input[type="search"]{min-width:260px;flex:1;padding:10px 12px;border:1px solid #bbb;border-radius:5px;font-size:14px;background:#fff}
+.controls select{padding:10px 12px;border:1px solid #bbb;border-radius:5px;font-size:13.5px;background:#fff}
+
+.sync-container{display:flex;align-items:center;gap:10px;margin-left:auto;flex-wrap:wrap}
+#syncBtn{padding:9px 13px;border:1px solid #111;border-radius:5px;background:#111;color:#fff;cursor:pointer;font-size:13px;transition:background 0.2s;white-space:nowrap}
+#syncBtn:hover:not(:disabled){background:#333}
+#syncBtn:disabled{background:#777;cursor:not-allowed}
+#liveStatus{font-size:12.5px;color:#555;white-space:nowrap}
+
+.mobile-filter-toggle{display:none;padding:9px 13px;border:1px solid #111;border-radius:5px;background:#fff;color:#111;cursor:pointer;font-size:13.5px;font-weight:bold}
+.mobile-filter-toggle:hover{background:#f0f0f0}
+
+/* Status & Counter */
+.status-bar{padding:10px 20px;font-size:14px;color:#555;background:#fafafa;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #eee}
+#status{font-weight:500}
+
+/* Cards Grid */
+.grid{padding:20px;display:grid;grid-template-columns:repeat(auto-fill,minmax(310px,1fr));gap:14px}
+.card{background:#fff;border:1px solid #ddd;border-radius:7px;padding:16px;box-shadow:0 1px 3px #0001;position:relative;display:flex;flex-direction:column;cursor:pointer;transition:transform 0.15s ease, box-shadow 0.15s ease}
+.card:hover{box-shadow:0 4px 12px #0002;transform:translateY(-2px)}
+.card-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px}
+.card .id{font-family:monospace;font-weight:bold;color:#444;font-size:13.5px}
+.bookmark-btn{background:none;border:none;font-size:20px;line-height:1;cursor:pointer;color:#ccc;padding:0;transition:color 0.15s, transform 0.15s}
+.bookmark-btn:hover{color:#f59e0b;transform:scale(1.15)}
+.bookmark-btn.active{color:#f59e0b}
+
+.card h2{font-size:15.5px;line-height:1.35;margin:6px 0 10px;color:#111;flex-grow:1}
+.card h2:hover{color:#0284c7}
+.meta{font-size:12px;color:#666;line-height:1.55;margin-bottom:12px}
+.meta div{margin-bottom:3px}
+.badge{display:inline-block;padding:2px 7px;border-radius:4px;background:#eee;margin:1px 3px 1px 0;font-size:11px;color:#333}
+.badge-ideas{background:#e0f2fe;color:#0369a1;font-weight:bold}
+.badge-link{background:#f0fdf4;color:#15803d;border:1px solid #bbf7d0;font-weight:500;text-decoration:none;cursor:pointer}
+.badge-link:hover{background:#dcfce7;color:#166534;text-decoration:underline}
+
+.card-actions{margin-top:auto}
+.card button.view-btn{width:100%;border:0;background:#111;color:#fff;padding:9px 13px;border-radius:4px;cursor:pointer;font-size:13px;transition:background 0.2s}
+.card button.view-btn:hover{background:#333}
+
+/* Pagination */
+.pagination{padding:16px 20px 30px;display:flex;align-items:center;justify-content:center;gap:6px;flex-wrap:wrap}
+.page-btn{padding:7px 12px;border:1px solid #ccc;background:#fff;color:#333;border-radius:4px;cursor:pointer;font-size:13px;transition:all 0.15s}
+.page-btn:hover:not(:disabled){background:#f0f0f0;border-color:#aaa}
+.page-btn.active{background:#111;color:#fff;border-color:#111;font-weight:bold}
+.page-btn:disabled{opacity:0.4;cursor:not-allowed}
+
+/* Modal */
+.overlay{display:none;position:fixed;inset:0;background:#0008;z-index:100;overflow:auto;padding:25px}
+.modal{background:#fff;max-width:1000px;margin:0 auto;border-radius:6px;overflow:hidden;box-shadow:0 8px 40px #0008}
+.modal-header{background:#eee;border-bottom:1px solid #ccc;padding:14px 18px;display:flex;align-items:center;justify-content:space-between;position:relative}
+.modal-header h3{margin:0;padding-right:15px;font-size:20px;color:#111}
+.modal-header-actions{display:flex;align-items:center;gap:12px}
+.btn-modal-fav{background:#fff;border:1px solid #ccc;padding:6px 12px;border-radius:4px;cursor:pointer;font-size:13px;color:#555;display:flex;align-items:center;gap:5px}
+.btn-modal-fav.active{background:#fffbeb;border-color:#f59e0b;color:#b45309;font-weight:bold}
+.close{border:0;background:none;font-size:28px;cursor:pointer;color:#555;line-height:1}
+
+.modal-body{padding:18px}
+table{width:100%;border-collapse:collapse}
+th,td{border:1px solid #ddd;padding:10px;vertical-align:top;text-align:left}
+th{width:250px;background:#f7f7f7}
+.description{max-height:420px;overflow:auto;line-height:1.55;word-wrap:break-word}
+.description p{margin:0 0 10px}
+.description ul,.description ol{margin-top:5px}
+.description a, td a{color:#0284c7;font-weight:500;text-decoration:underline;word-break:break-all}
+.description a:hover, td a:hover{color:#0369a1;text-decoration:underline}
+
+.empty{padding:50px;text-align:center;color:#777;grid-column:1/-1}
+.loading{padding:60px;text-align:center;font-size:18px}
+.error{margin:30px;padding:20px;background:#fff0f0;border:1px solid #e88;color:#900;line-height:1.5}
+
+/* Sidebar Backdrop on Mobile */
+.sidebar-overlay{display:none;position:fixed;inset:0;background:#0006;z-index:25}
+
+/* Responsive */
+@media(max-width:960px){
+ .sidebar{position:fixed;top:0;left:0;bottom:0;z-index:40;transform:translateX(-100%);transition:transform 0.25s ease-out;box-shadow:4px 0 20px #0004;height:100vh}
+ .sidebar.open{transform:translateX(0)}
+ .sidebar-overlay.open{display:block}
+ .sidebar-close-btn{display:block}
+ .btn-apply-mobile{display:block}
+ .mobile-filter-toggle{display:inline-flex;align-items:center;gap:5px}
+}
+
+@media(max-width:700px){
+ .topbar{flex-direction:column;align-items:flex-start;gap:8px}
+ .topbar-left{flex-direction:column;align-items:flex-start;gap:2px}
+ .topbar-right{width:100%;justify-content:space-between}
+ .controls{top:94px}
+ .sync-container{margin-left:0;width:100%;justify-content:space-between}
+ .grid{padding:10px}
+ .overlay{padding:8px}
+ th{width:38%}
+}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="topbar-left">
+    <h1>SIH 2026 Problem Statements</h1>
+    <span id="subtitle">Loading 240 official-source records…</span>
+  </div>
+  <div class="topbar-right">
+    <div class="bookmark-badge-link" onclick="toggleBookmarkedFilter()" title="Click to view bookmarked problem statements">
+      ★ Bookmarks: <b id="favCount">0</b>
+    </div>
+  </div>
+</div>
+
+<div class="app-layout">
+  <!-- Sidebar "Refine Results" -->
+  <aside class="sidebar" id="refineSidebar">
+    <div class="sidebar-header">
+      <h2>
+        <span>⚙ Refine Results</span>
+      </h2>
+      <div style="display:flex;align-items:center;gap:8px;">
+        <button id="resetFiltersBtn" type="button" class="btn-reset">Reset All</button>
+        <button type="button" class="sidebar-close-btn" onclick="toggleMobileSidebar(false)" aria-label="Close filters">×</button>
+      </div>
+    </div>
+
+    <!-- 1. Category Filter -->
+    <div class="filter-group">
+      <label class="group-title">Category</label>
+      <div id="categoryGroup" class="segmented-group">
+        <button type="button" class="btn-segment active" data-category="ALL">All <span id="catAllCount" class="pill-badge">240</span></button>
+        <button type="button" class="btn-segment" data-category="Software">Software <span id="catSoftwareCount" class="pill-badge">182</span></button>
+        <button type="button" class="btn-segment" data-category="Hardware">Hardware <span id="catHardwareCount" class="pill-badge">58</span></button>
+      </div>
+    </div>
+
+    <!-- 2. Technology & Domains (Multi-Select) -->
+    <div class="filter-group">
+      <label class="group-title">Technology & Domains</label>
+      <div id="techTagsContainer" class="tech-tags-container">
+        <span class="tech-tag-pill" data-tech-id="ai-ml">AI / ML / Deep Learning</span>
+        <span class="tech-tag-pill" data-tech-id="cv">Computer Vision</span>
+        <span class="tech-tag-pill" data-tech-id="nlp">NLP / LLM / Voice</span>
+        <span class="tech-tag-pill" data-tech-id="gis">GIS / Satellite</span>
+        <span class="tech-tag-pill" data-tech-id="iot">IoT / Sensors</span>
+        <span class="tech-tag-pill" data-tech-id="blockchain">Blockchain</span>
+        <span class="tech-tag-pill" data-tech-id="robotics">Robotics & UAV</span>
+        <span class="tech-tag-pill" data-tech-id="mobile">Mobile Apps</span>
+        <span class="tech-tag-pill" data-tech-id="cloud">Cloud & Web</span>
+        <span class="tech-tag-pill" data-tech-id="healthtech">HealthTech</span>
+        <span class="tech-tag-pill" data-tech-id="agritech">AgriTech</span>
+        <span class="tech-tag-pill" data-tech-id="cybersecurity">Cybersecurity</span>
+      </div>
+    </div>
+
+    <!-- 3. Theme / Area Filter -->
+    <div class="filter-group">
+      <label class="group-title" for="themeSelect">Theme / Area</label>
+      <select id="themeSelect">
+        <option value="">All Themes</option>
+      </select>
+    </div>
+
+    <!-- 4. Ministry / Organization Filter -->
+    <div class="filter-group">
+      <label class="group-title" for="orgSelect">Ministry / Organization</label>
+      <select id="orgSelect">
+        <option value="">All Organizations</option>
+      </select>
+    </div>
+
+    <!-- 5. Department / Division Filter (Dependent) -->
+    <div class="filter-group" id="deptFilterGroup">
+      <label class="group-title" for="deptSelect">Department / Division</label>
+      <select id="deptSelect" disabled>
+        <option value="">All Departments</option>
+      </select>
+    </div>
+
+    <!-- 6. Attributes Filters -->
+    <div class="filter-group">
+      <label class="group-title">Attributes</label>
+      <div class="checkbox-list">
+        <label class="checkbox-item">
+          <input type="checkbox" id="filterHasDataset">
+          <span>Has Dataset / Reference</span>
+        </label>
+        <label class="checkbox-item">
+          <input type="checkbox" id="filterHasLinks">
+          <span>Has External Links</span>
+        </label>
+        <label class="checkbox-item">
+          <input type="checkbox" id="filterHasVideo">
+          <span>Has Reference Video</span>
+        </label>
+        <label class="checkbox-item">
+          <input type="checkbox" id="filterHasContact">
+          <span>Has Contact Info</span>
+        </label>
+        <label class="checkbox-item">
+          <input type="checkbox" id="filterFavoritesOnly">
+          <span>★ Bookmarked Only</span>
+        </label>
+      </div>
+    </div>
+
+    <button type="button" id="applyMobileFiltersBtn" class="btn-apply-mobile" onclick="toggleMobileSidebar(false)">Apply Filters</button>
+  </aside>
+
+  <div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleMobileSidebar(false)"></div>
+
+  <!-- Main Content Area -->
+  <main class="main-content">
+    <div class="controls">
+      <button type="button" id="mobileFilterToggleBtn" class="mobile-filter-toggle" onclick="toggleMobileSidebar(true)">
+        ☰ Filters
+      </button>
+
+      <input id="search" type="search" placeholder="Search ID, title, organization, department, theme, description, tech tags…">
+
+      <!-- Sort Select -->
+      <select id="sortSelect" title="Sort problem statements">
+        <option value="id_asc">Sort: PS ID Ascending</option>
+        <option value="id_desc">Sort: PS ID Descending</option>
+        <option value="submissions_desc">Submissions: Most → Least</option>
+        <option value="submissions_asc">Submissions: Least → Most</option>
+        <option value="title_asc">Title: A → Z</option>
+        <option value="title_desc">Title: Z → A</option>
+        <option value="org_asc">Organization: A → Z</option>
+        <option value="theme_asc">Theme: A → Z</option>
+        <option value="desc_len_desc">Description Length: Detailed First</option>
+      </select>
+
+      <div class="sync-container">
+        <button id="syncBtn" type="button">↻ Sync Now</button>
+        <span id="liveStatus">Live submission data: Initializing...</span>
+      </div>
+    </div>
+
+    <div class="status-bar">
+      <div id="status">Loading dataset…</div>
+      <div id="resultCount" style="font-size:12.5px;color:#777;"></div>
+    </div>
+
+    <div id="app" class="loading">Loading SIH 2026 Problem Statements…</div>
+
+    <!-- Pagination Controls -->
+    <div id="paginationContainer" class="pagination" style="display:none;"></div>
+  </main>
+</div>
+
+<!-- Modal -->
+<div id="overlay" class="overlay">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 id="modalTitle"></h3>
+      <div class="modal-header-actions">
+        <button type="button" id="modalFavBtn" class="btn-modal-fav" onclick="toggleModalBookmark()">★ Bookmark</button>
+        <button class="close" onclick="closeModal()" aria-label="Close">×</button>
+      </div>
+    </div>
+    <div class="modal-body">
+      <table id="settings" class="table table-bordered table-hover">
+        <thead id="modalRows"></thead>
+      </table>
+    </div>
+  </div>
+</div>
+
+<script>
+const GITHUB_DATA_URL =
+  "https://raw.githubusercontent.com/sea-deep/sih2026-problem-statements/main/sih2026_problem_statements.json";
+const LOCAL_DATA_URL = "./sih2026_problem_statements.json";
+const API_BASE = window.SIH_API_BASE || "";
+const SUBMISSIONS_API_URL = `${API_BASE}/api/sih/submissions`;
+const STATEMENTS_API_URL = `${API_BASE}/api/sih/statements`;
+const AUTO_SYNC_MS = 5 * 60 * 1000;
+const BOOKMARK_STORAGE_KEY = "sih2026_bookmarks";
+
+// Technology matching patterns
+const TECH_PATTERNS = {
+  "ai-ml": /\b(ai|ml|artificial\s*intelligence|machine\s*learning|deep\s*learning|neural\s*network|predictive\s*model|reinforcement\s*learning|generative\s*ai|genai)\b/i,
+  "cv": /\b(computer\s*vision|vision|image\s*processing|object\s*detection|face\s*recognition|facial|camera|ocr|yolo|image\s*segmentation)\b/i,
+  "nlp": /\b(nlp|natural\s*language|llm|language\s*model|speech|voice|audio|text\s*analysis|chatbot|speech-to-text|text-to-speech|translation)\b/i,
+  "gis": /\b(gis|satellite|geospatial|remote\s*sensing|gps|spatial|mapping|isro|radar|geo|cartograph|elevation)\b/i,
+  "iot": /\b(iot|internet\s*of\s*things|sensor|sensors|telemetry|smart\s*meter|microcontroller|esp32|arduino|rfid|zigbee|lora)\b/i,
+  "blockchain": /\b(blockchain|smart\s*contract|distributed\s*ledger|crypto|web3|decentralized|tamper-proof|consensus|hyperledger)\b/i,
+  "robotics": /\b(robot|robotics|drone|drones|uav|unmanned|autonomous\s*vehicle|rover|actuator|manipulator|flight)\b/i,
+  "mobile": /\b(mobile|android|ios|flutter|app|smartphone|apk|react\s*native)\b/i,
+  "cloud": /\b(cloud|web|portal|dashboard|api|database|platform|server|microservices|rest\s*api|backend)\b/i,
+  "healthtech": /\b(health|medical|patient|hospital|doctor|clinical|disease|healthcare|biomedical|telehealth|diagnosis|pharmacy)\b/i,
+  "agritech": /\b(agri|agriculture|crop|crops|farm|farmer|farmers|soil|irrigation|pest|harvest|agrarian|cattle|livestock)\b/i,
+  "cybersecurity": /\b(cyber|security|vulnerability|malware|encryption|cryptography|authentication|attack|intrusion|threat|firewall|zero-trust|phishing)\b/i
+};
+
+// Global App State
+let records = [];
+let filtered = [];
+let bookmarks = new Set(loadBookmarks());
+let hasEverSyncedSuccessfully = false;
+let autoRefreshIntervalId = null;
+let currentModalPsId = null;
+
+// Central Filter State
+const filterState = {
+  search: "",
+  category: "ALL",
+  technologies: [],
+  theme: "",
+  organization: "",
+  department: "",
+  hasDataset: false,
+  hasLinks: false,
+  hasVideo: false,
+  hasContact: false,
+  favoritesOnly: false,
+  sort: "id_asc",
+  page: 1,
+  pageSize: 24
+};
+
+function esc(v){
+  if(v===null || v===undefined) return "";
+  return String(v).replace(/[&<>"']/g, c => ({
+    "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"
+  }[c]));
+}
+
+function text(v){
+  if(v===null || v===undefined || v==="") return "";
+  return String(v);
+}
+
+// Convert any plain text URLs / www addresses in any string into clickable <a> links
+function linkify(str){
+  if(!str) return "";
+  return String(str).replace(/<a\b[^>]*>.*?<\/a>|((?:https?:\/\/|www\.)[^\s<>"')]+)/gi, (match, url) => {
+    if(!url) return match; // Already an <a> tag
+    let href = url;
+    if(href.toLowerCase().startsWith("www.")){
+      href = "https://" + href;
+    }
+    let trailing = "";
+    if(/[.,;:!?]$/.test(href)){
+      trailing = href.slice(-1);
+      href = href.slice(0, -1);
+      url = url.slice(0, -1);
+    }
+    return `<a href="${href}" target="_blank" rel="noopener noreferrer">${url}</a>${trailing}`;
+  });
+}
+
+// Automatically scans all text nodes inside a DOM element and turns unlinked URLs into clickable <a> links
+function autoLinkifyContainer(container){
+  if(!container) return;
+  const walker = document.createTreeWalker(container, NodeFilter.SHOW_TEXT, {
+    acceptNode: function(node){
+      if(!node.nodeValue || !node.nodeValue.trim()) return NodeFilter.FILTER_REJECT;
+      if(node.parentElement && (node.parentElement.tagName === "A" || node.parentElement.tagName === "BUTTON" || node.parentElement.tagName === "SCRIPT" || node.parentElement.tagName === "STYLE")){
+        return NodeFilter.FILTER_REJECT;
+      }
+      if(/(https?:\/\/|www\.)[^\s<>"')]+/i.test(node.nodeValue)){
+        return NodeFilter.FILTER_ACCEPT;
+      }
+      return NodeFilter.FILTER_SKIP;
+    }
+  });
+
+  const nodes = [];
+  while(walker.nextNode()){
+    nodes.push(walker.currentNode);
+  }
+
+  nodes.forEach(node => {
+    const parent = node.parentNode;
+    if(!parent) return;
+    const span = document.createElement("span");
+    span.innerHTML = linkify(esc(node.nodeValue));
+    parent.replaceChild(span, node);
+  });
+}
+
+function loadBookmarks(){
+  try{
+    const stored = localStorage.getItem(BOOKMARK_STORAGE_KEY);
+    return stored ? JSON.parse(stored) : [];
+  }catch(_e){
+    return [];
+  }
+}
+
+function saveBookmarks(){
+  try{
+    localStorage.setItem(BOOKMARK_STORAGE_KEY, JSON.stringify([...bookmarks]));
+  }catch(_e){}
+}
+
+function updateFavCountBadge(){
+  const el = document.getElementById("favCount");
+  if(el) el.textContent = bookmarks.size;
+}
+
+function toggleBookmark(id){
+  if(bookmarks.has(id)){
+    bookmarks.delete(id);
+  }else{
+    bookmarks.add(id);
+  }
+  saveBookmarks();
+  updateFavCountBadge();
+
+  if(filterState.favoritesOnly){
+    applyFilters();
+  }else{
+    const cardBtns = document.querySelectorAll(`.bookmark-btn[data-id="${id}"]`);
+    cardBtns.forEach(btn => {
+      if(bookmarks.has(id)){
+        btn.classList.add("active");
+        btn.title = "Remove bookmark";
+      }else{
+        btn.classList.remove("active");
+        btn.title = "Bookmark this PS";
+      }
+    });
+    if(currentModalPsId === id){
+      updateModalFavBtnState();
+    }
+  }
+}
+
+function onBookmarkClick(event, id){
+  event.stopPropagation();
+  toggleBookmark(id);
+}
+
+function toggleBookmarkedFilter(){
+  const chk = document.getElementById("filterFavoritesOnly");
+  if(chk){
+    chk.checked = !chk.checked;
+    filterState.favoritesOnly = chk.checked;
+    filterState.page = 1;
+    applyFilters();
+  }
+}
+
+function toggleModalBookmark(){
+  if(currentModalPsId){
+    toggleBookmark(currentModalPsId);
+  }
+}
+
+function updateModalFavBtnState(){
+  const btn = document.getElementById("modalFavBtn");
+  if(!btn || !currentModalPsId) return;
+  if(bookmarks.has(currentModalPsId)){
+    btn.classList.add("active");
+    btn.textContent = "★ Bookmarked";
+  }else{
+    btn.classList.remove("active");
+    btn.textContent = "☆ Bookmark";
+  }
+}
+
+function getRecordTechs(p){
+  if(p._techs) return p._techs;
+  const hay = `${p.id} ${p.title} ${p.organization} ${p.department} ${p.theme} ${p.category} ${p.description || ""} ${p.raw_description || ""}`;
+  const matched = [];
+  for(const [techId, regex] of Object.entries(TECH_PATTERNS)){
+    if(regex.test(hay)){
+      matched.push(techId);
+    }
+  }
+  p._techs = matched;
+  return matched;
+}
+
+function submissionCount(p){
+  if(!p) return 0;
+  const si = p.submitted_ideas;
+  if(typeof si === "object" && si !== null){
+    if(typeof si.submitted === "number") return si.submitted;
+    if(typeof si.count === "number") return si.count;
+    const sStr = String(si.display || si.raw || "");
+    const m = sStr.match(/(\d+)/);
+    if(m) return Number(m[1]);
+  }
+  const value = si?.raw ?? si ?? "";
+  if(typeof value === "number" && Number.isFinite(value)) return value;
+  const match = String(value).replace(/,/g,"").match(/-?\d+(?:\.\d+)?/);
+  return match ? Number(match[0]) : 0;
+}
+
+function descriptionHtml(p){
+  if(p.description_html) return linkify(p.description_html);
+  if(p.description) return linkify(esc(p.description).replace(/\n/g,"<br>"));
+  return "";
+}
+
+function row(label,value){
+  return `<tr><th>${esc(label)}</th><td>${value ?? ""}</td></tr>`;
+}
+
+function updateDepartmentOptions(){
+  const deptSelect = document.getElementById("deptSelect");
+  const deptGroup = document.getElementById("deptFilterGroup");
+  if(!deptSelect) return;
+
+  const currentOrg = filterState.organization;
+  deptSelect.innerHTML = '<option value="">All Departments</option>';
+
+  if(!currentOrg){
+    deptSelect.disabled = true;
+    if(deptGroup) deptGroup.style.opacity = "0.6";
+    filterState.department = "";
+    return;
+  }
+
+  if(deptGroup) deptGroup.style.opacity = "1";
+  deptSelect.disabled = false;
+
+  const orgRecords = records.filter(p => p.organization === currentOrg);
+  const deptCounts = {};
+  orgRecords.forEach(p => {
+    const d = (p.department || "").trim();
+    if(d) deptCounts[d] = (deptCounts[d] || 0) + 1;
+  });
+
+  const sortedDepts = Object.keys(deptCounts).sort();
+  sortedDepts.forEach(d => {
+    const opt = document.createElement("option");
+    opt.value = d;
+    opt.textContent = `${d} (${deptCounts[d]})`;
+    if(filterState.department === d) opt.selected = true;
+    deptSelect.appendChild(opt);
+  });
+}
+
+function populateFilterDropdowns(){
+  const themeSelect = document.getElementById("themeSelect");
+  const orgSelect = document.getElementById("orgSelect");
+
+  // Dynamic Theme Counts
+  const themeCounts = {};
+  records.forEach(p => {
+    const t = (p.theme || "").trim();
+    if(t) themeCounts[t] = (themeCounts[t] || 0) + 1;
+  });
+
+  if(themeSelect){
+    const cur = filterState.theme;
+    themeSelect.innerHTML = '<option value="">All Themes</option>';
+    Object.keys(themeCounts).sort().forEach(t => {
+      const opt = document.createElement("option");
+      opt.value = t;
+      opt.textContent = `${t} (${themeCounts[t]})`;
+      if(t === cur) opt.selected = true;
+      themeSelect.appendChild(opt);
+    });
+  }
+
+  // Dynamic Organization Counts
+  const orgCounts = {};
+  records.forEach(p => {
+    const o = (p.organization || "").trim();
+    if(o) orgCounts[o] = (orgCounts[o] || 0) + 1;
+  });
+
+  if(orgSelect){
+    const cur = filterState.organization;
+    orgSelect.innerHTML = '<option value="">All Organizations</option>';
+    Object.keys(orgCounts).sort().forEach(o => {
+      const opt = document.createElement("option");
+      opt.value = o;
+      opt.textContent = `${o} (${orgCounts[o]})`;
+      if(o === cur) opt.selected = true;
+      orgSelect.appendChild(opt);
+    });
+  }
+
+  // Dynamic Category Counts
+  const total = records.length;
+  const sw = records.filter(p => p.category === "Software").length;
+  const hw = records.filter(p => p.category === "Hardware").length;
+
+  const cAll = document.getElementById("catAllCount");
+  if(cAll) cAll.textContent = total;
+  const cSw = document.getElementById("catSoftwareCount");
+  if(cSw) cSw.textContent = sw;
+  const cHw = document.getElementById("catHardwareCount");
+  if(cHw) cHw.textContent = hw;
+
+  updateDepartmentOptions();
+}
+
+function toggleMobileSidebar(open){
+  const sidebar = document.getElementById("refineSidebar");
+  const overlay = document.getElementById("sidebarOverlay");
+  if(open){
+    sidebar.classList.add("open");
+    overlay.classList.add("open");
+  }else{
+    sidebar.classList.remove("open");
+    overlay.classList.remove("open");
+  }
+}
+
+// Read URL Parameters on Initial Load
+function readStateFromUrl(){
+  const params = new URLSearchParams(window.location.search);
+  if(params.has("q")) filterState.search = params.get("q").trim();
+  if(params.has("category")) filterState.category = params.get("category");
+  if(params.has("theme")) filterState.theme = params.get("theme");
+  if(params.has("org")) filterState.organization = params.get("org");
+  if(params.has("dept")) filterState.department = params.get("dept");
+  if(params.has("sort")) filterState.sort = params.get("sort");
+  if(params.has("tech")){
+    const t = params.get("tech").split(",").map(x => x.trim()).filter(Boolean);
+    filterState.technologies = t;
+  }
+  if(params.has("hasDataset")) filterState.hasDataset = params.get("hasDataset") === "true";
+  if(params.has("hasLinks")) filterState.hasLinks = params.get("hasLinks") === "true";
+  if(params.has("hasVideo")) filterState.hasVideo = params.get("hasVideo") === "true";
+  if(params.has("hasContact")) filterState.hasContact = params.get("hasContact") === "true";
+  if(params.has("favoritesOnly")) filterState.favoritesOnly = params.get("favoritesOnly") === "true";
+  if(params.has("page")) filterState.page = parseInt(params.get("page"), 10) || 1;
+}
+
+// Update URL Parameters
+function updateUrlFromState(){
+  try{
+    const params = new URLSearchParams();
+    if(filterState.search) params.set("q", filterState.search);
+    if(filterState.category && filterState.category !== "ALL") params.set("category", filterState.category);
+    if(filterState.theme) params.set("theme", filterState.theme);
+    if(filterState.organization) params.set("org", filterState.organization);
+    if(filterState.department) params.set("dept", filterState.department);
+    if(filterState.technologies && filterState.technologies.length > 0) params.set("tech", filterState.technologies.join(","));
+    if(filterState.sort && filterState.sort !== "id_asc") params.set("sort", filterState.sort);
+    if(filterState.hasDataset) params.set("hasDataset", "true");
+    if(filterState.hasLinks) params.set("hasLinks", "true");
+    if(filterState.hasVideo) params.set("hasVideo", "true");
+    if(filterState.hasContact) params.set("hasContact", "true");
+    if(filterState.favoritesOnly) params.set("favoritesOnly", "true");
+    if(filterState.page > 1) params.set("page", filterState.page);
+
+    const queryStr = params.toString();
+    const newUrl = queryStr ? `${window.location.pathname}?${queryStr}` : window.location.pathname;
+    window.history.replaceState(null, "", newUrl);
+  }catch(_e){}
+}
+
+// Sync UI Controls with filterState
+function syncUIWithState(){
+  const sInput = document.getElementById("search");
+  if(sInput) sInput.value = filterState.search;
+
+  document.querySelectorAll("#categoryGroup .btn-segment").forEach(btn => {
+    const cat = btn.getAttribute("data-category");
+    if(cat === filterState.category){
+      btn.classList.add("active");
+    }else{
+      btn.classList.remove("active");
+    }
+  });
+
+  document.querySelectorAll("#techTagsContainer .tech-tag-pill").forEach(pill => {
+    const tid = pill.getAttribute("data-tech-id");
+    if(filterState.technologies.includes(tid)){
+      pill.classList.add("active");
+    }else{
+      pill.classList.remove("active");
+    }
+  });
+
+  const tSel = document.getElementById("themeSelect");
+  if(tSel) tSel.value = filterState.theme;
+
+  const oSel = document.getElementById("orgSelect");
+  if(oSel) oSel.value = filterState.organization;
+
+  updateDepartmentOptions();
+  const dSel = document.getElementById("deptSelect");
+  if(dSel) dSel.value = filterState.department;
+
+  const chkDataset = document.getElementById("filterHasDataset");
+  if(chkDataset) chkDataset.checked = filterState.hasDataset;
+
+  const chkLinks = document.getElementById("filterHasLinks");
+  if(chkLinks) chkLinks.checked = filterState.hasLinks;
+
+  const chkVideo = document.getElementById("filterHasVideo");
+  if(chkVideo) chkVideo.checked = filterState.hasVideo;
+
+  const chkContact = document.getElementById("filterHasContact");
+  if(chkContact) chkContact.checked = filterState.hasContact;
+
+  const chkFavs = document.getElementById("filterFavoritesOnly");
+  if(chkFavs) chkFavs.checked = filterState.favoritesOnly;
+
+  const sortSel = document.getElementById("sortSelect");
+  if(sortSel) sortSel.value = filterState.sort;
+}
+
+// Central Filtering & Sorting Pipeline
+function applyFilters(){
+  // 1. Filter Records
+  filtered = records.filter(p => {
+    if(filterState.search){
+      const q = filterState.search.toLowerCase();
+      const hay = [
+        p.id, p.title, p.organization, p.department, p.category, p.theme,
+        p.description, p.raw_description, p.description_html,
+        p.dataset_info, p.contact_info,
+        getRecordTechs(p).join(" ")
+      ].map(text).join(" ").toLowerCase();
+      if(!hay.includes(q)) return false;
+    }
+
+    if(filterState.category && filterState.category !== "ALL"){
+      if(p.category !== filterState.category) return false;
+    }
+
+    if(filterState.technologies && filterState.technologies.length > 0){
+      const pTechs = getRecordTechs(p);
+      const matchesAny = filterState.technologies.some(t => pTechs.includes(t));
+      if(!matchesAny) return false;
+    }
+
+    if(filterState.theme){
+      if(p.theme !== filterState.theme) return false;
+    }
+
+    if(filterState.organization){
+      if(p.organization !== filterState.organization) return false;
+    }
+
+    if(filterState.department){
+      if(p.department !== filterState.department) return false;
+    }
+
+    if(filterState.hasDataset){
+      const ds = (p.dataset_info || "").trim();
+      const hasDs = Boolean(ds && !/^(n\/?a|none|nil)$/i.test(ds));
+      if(!hasDs) return false;
+    }
+
+    if(filterState.hasLinks){
+      const y = (p.youtube_link || "").trim();
+      const ds = (p.dataset_info || "").trim();
+      const hasLk = Boolean((y && !/^(n\/?a|none|nil)$/i.test(y)) || (p.external_links && p.external_links.length > 0) || /https?:\/\//i.test(ds));
+      if(!hasLk) return false;
+    }
+
+    if(filterState.hasVideo){
+      const y = (p.youtube_link || "").trim();
+      const hasVid = Boolean(y && !/^(n\/?a|none|nil)$/i.test(y));
+      if(!hasVid) return false;
+    }
+
+    if(filterState.hasContact){
+      const c = (p.contact_info || "").trim();
+      const hasCt = Boolean(c && !/^(n\/?a|none|nil)$/i.test(c));
+      if(!hasCt) return false;
+    }
+
+    if(filterState.favoritesOnly){
+      if(!bookmarks.has(p.id)) return false;
+    }
+
+    return true;
+  });
+
+  // 2. Sort Records
+  const mode = filterState.sort;
+  if(mode === "submissions_desc" || mode === "submissions-desc"){
+    filtered.sort((a,b) => {
+      const diff = submissionCount(b) - submissionCount(a);
+      return diff || String(a.id || "").localeCompare(String(b.id || ""));
+    });
+  }else if(mode === "submissions_asc" || mode === "submissions-asc"){
+    filtered.sort((a,b) => {
+      const diff = submissionCount(a) - submissionCount(b);
+      return diff || String(a.id || "").localeCompare(String(b.id || ""));
+    });
+  }else if(mode === "id_desc"){
+    filtered.sort((a,b) => {
+      const na = Number(String(a.numeric_id ?? a.id ?? "").replace(/\D/g,"")) || 0;
+      const nb = Number(String(b.numeric_id ?? b.id ?? "").replace(/\D/g,"")) || 0;
+      return nb - na;
+    });
+  }else if(mode === "title_asc"){
+    filtered.sort((a,b) => String(a.title || "").localeCompare(String(b.title || "")));
+  }else if(mode === "title_desc"){
+    filtered.sort((a,b) => String(b.title || "").localeCompare(String(a.title || "")));
+  }else if(mode === "org_asc"){
+    filtered.sort((a,b) => String(a.organization || "").localeCompare(String(b.organization || "")));
+  }else if(mode === "theme_asc"){
+    filtered.sort((a,b) => String(a.theme || "").localeCompare(String(b.theme || "")));
+  }else if(mode === "desc_len_desc"){
+    filtered.sort((a,b) => {
+      const la = (a.description || a.raw_description || "").length;
+      const lb = (b.description || b.raw_description || "").length;
+      return lb - la;
+    });
+  }else{
+    filtered.sort((a,b) => {
+      const na = Number(String(a.numeric_id ?? a.id ?? "").replace(/\D/g,"")) || 0;
+      const nb = Number(String(b.numeric_id ?? b.id ?? "").replace(/\D/g,"")) || 0;
+      return na - nb;
+    });
+  }
+
+  // 3. Update Result Counter
+  const count = filtered.length;
+  const total = records.length;
+  const statusEl = document.getElementById("status");
+  if(statusEl){
+    statusEl.textContent = `Showing ${count} of ${total} Problem Statements`;
+  }
+  const resultCountEl = document.getElementById("resultCount");
+  if(resultCountEl){
+    if(count === total){
+      resultCountEl.textContent = `All ${total} records available`;
+    }else{
+      resultCountEl.textContent = `${count} matching filters`;
+    }
+  }
+
+  // 4. Update Pagination & Render Cards
+  updatePaginationAndRender();
+
+  // 5. Update URL Query Parameters
+  updateUrlFromState();
+}
+
+function updatePaginationAndRender(){
+  const totalPages = Math.ceil(filtered.length / filterState.pageSize) || 1;
+  if(filterState.page > totalPages) filterState.page = totalPages;
+  if(filterState.page < 1) filterState.page = 1;
+
+  const start = (filterState.page - 1) * filterState.pageSize;
+  const end = start + filterState.pageSize;
+  const pageItems = filtered.slice(start, end);
+
+  renderCards(pageItems);
+  renderPaginationControls(totalPages);
+}
+
+function renderCards(items){
+  const app = document.getElementById("app");
+  if(!items.length){
+    app.className = "empty";
+    app.innerHTML = `
+      <div style="padding:40px 20px;text-align:center;">
+        <h3 style="font-size:18px;color:#555;margin-bottom:8px;">No problem statements match your filters.</h3>
+        <p style="font-size:13.5px;color:#777;margin-bottom:16px;">Try adjusting your search query, technology tags, or clear filters.</p>
+        <button type="button" onclick="resetFilters()" style="padding:9px 16px;border:1px solid #111;background:#111;color:#fff;border-radius:4px;cursor:pointer;font-size:13.5px">Reset All Filters</button>
+      </div>
+    `;
+    return;
+  }
+
+  app.className = "grid";
+  app.innerHTML = items.map(p => {
+    const isFav = bookmarks.has(p.id);
+    const ideasText = p.submitted_ideas?.display || p.submitted_ideas?.raw || (typeof p.submitted_ideas === "string" ? p.submitted_ideas : "");
+    const ytLink = p.youtube_link && p.youtube_link.trim() && !/^(n\/?a|none|nil)$/i.test(p.youtube_link.trim()) ? p.youtube_link.trim() : null;
+    
+    // Check for dataset link
+    let dsUrl = null;
+    if(p.dataset_info && typeof p.dataset_info === "string"){
+      const m = p.dataset_info.match(/https?:\/\/[^\s<>"')]+/i);
+      if(m) dsUrl = m[0];
+    }
+
+    return `
+      <div class="card" onclick="openModal('${esc(p.id)}')">
+        <div class="card-header">
+          <div class="id">${esc(p.id)}</div>
+          <button type="button" class="bookmark-btn ${isFav ? 'active' : ''}" data-id="${esc(p.id)}" onclick="onBookmarkClick(event, '${esc(p.id)}')" title="${isFav ? 'Remove bookmark' : 'Bookmark this PS'}">★</button>
+        </div>
+        <h2 title="Click to view full details">${esc(p.title)}</h2>
+        <div class="meta">
+          <div><b>Organization:</b> ${esc(p.organization)}</div>
+          <div><b>Category:</b> <span class="badge">${esc(p.category)}</span></div>
+          <div><b>Theme:</b> <span class="badge">${esc(p.theme)}</span></div>
+          <div><b>Ideas:</b> <span class="badge badge-ideas">${esc(ideasText || '—')}</span></div>
+          ${(ytLink || dsUrl) ? `
+            <div style="margin-top:6px;display:flex;gap:6px;flex-wrap:wrap;">
+              ${ytLink ? `<a href="${esc(ytLink)}" target="_blank" rel="noopener noreferrer" class="badge badge-link" style="background:#fee2e2;color:#b91c1c;border-color:#fca5a5;" onclick="event.stopPropagation()">▶ Video Link</a>` : ''}
+              ${dsUrl ? `<a href="${esc(dsUrl)}" target="_blank" rel="noopener noreferrer" class="badge badge-link" onclick="event.stopPropagation()">📁 Dataset Link</a>` : ''}
+            </div>
+          ` : ''}
+        </div>
+        <div class="card-actions">
+          <button type="button" class="view-btn" onclick="event.stopPropagation(); openModal('${esc(p.id)}')">View Problem Statement</button>
+        </div>
+      </div>
+    `;
+  }).join("");
+
+  autoLinkifyContainer(app);
+}
+
+function renderPaginationControls(totalPages){
+  const container = document.getElementById("paginationContainer");
+  if(totalPages <= 1){
+    container.style.display = "none";
+    container.innerHTML = "";
+    return;
+  }
+
+  container.style.display = "flex";
+  let html = "";
+
+  html += `<button type="button" class="page-btn" ${filterState.page === 1 ? 'disabled' : ''} onclick="goToPage(${filterState.page - 1})">« Prev</button>`;
+
+  let pages = [];
+  if(totalPages <= 7){
+    pages = Array.from({length: totalPages}, (_, i) => i + 1);
+  }else{
+    if(filterState.page <= 4){
+      pages = [1, 2, 3, 4, 5, "...", totalPages];
+    }else if(filterState.page >= totalPages - 3){
+      pages = [1, "...", totalPages - 4, totalPages - 3, totalPages - 2, totalPages - 1, totalPages];
+    }else{
+      pages = [1, "...", filterState.page - 1, filterState.page, filterState.page + 1, "...", totalPages];
+    }
+  }
+
+  pages.forEach(p => {
+    if(p === "..."){
+      html += `<span style="padding:6px 4px;color:#888;">…</span>`;
+    }else{
+      html += `<button type="button" class="page-btn ${p === filterState.page ? 'active' : ''}" onclick="goToPage(${p})">${p}</button>`;
+    }
+  });
+
+  html += `<button type="button" class="page-btn ${filterState.page === totalPages ? 'disabled' : ''} onclick="goToPage(${filterState.page + 1})">Next »</button>`;
+
+  container.innerHTML = html;
+}
+
+function goToPage(p){
+  filterState.page = p;
+  applyFilters();
+  window.scrollTo({top: 0, behavior: 'smooth'});
+}
+
+function resetFilters(){
+  filterState.search = "";
+  filterState.category = "ALL";
+  filterState.technologies = [];
+  filterState.theme = "";
+  filterState.organization = "";
+  filterState.department = "";
+  filterState.hasDataset = false;
+  filterState.hasLinks = false;
+  filterState.hasVideo = false;
+  filterState.hasContact = false;
+  filterState.favoritesOnly = false;
+  filterState.sort = "id_asc";
+  filterState.page = 1;
+
+  syncUIWithState();
+  applyFilters();
+}
+
+function openModal(id){
+  const p = records.find(x => x.id === id);
+  if(!p) return;
+
+  currentModalPsId = id;
+  document.getElementById("modalTitle").textContent = p.title;
+  updateModalFavBtnState();
+
+  const yt = p.youtube_link && p.youtube_link.trim() && !/^(n\/?a|none|nil)$/i.test(p.youtube_link.trim())
+    ? `<a href="${esc(p.youtube_link.trim())}" target="_blank" rel="noopener noreferrer">${esc(p.youtube_link.trim())}</a>`
+    : "";
+
+  let dataset = "";
+  if(p.dataset_info && p.dataset_info.trim() && !/^(n\/?a|none|nil)$/i.test(p.dataset_info.trim())){
+    const raw = typeof p.dataset_info === "string"
+      ? esc(p.dataset_info).replace(/\n/g, "<br>")
+      : esc(JSON.stringify(p.dataset_info));
+    dataset = linkify(raw);
+  }
+
+  let contact = "";
+  if(p.contact_info && p.contact_info.trim() && !/^(n\/?a|none|nil)$/i.test(p.contact_info.trim())){
+    contact = linkify(esc(p.contact_info).replace(/\n/g, "<br>"));
+  }
+
+  const desc = descriptionHtml(p);
+  const ideasDisplay = p.submitted_ideas?.display || p.submitted_ideas?.raw || (typeof p.submitted_ideas === "string" ? p.submitted_ideas : "");
+  const officialUrl = p.web_url || `https://www.sih.gov.in/sih2026PS#ViewProblemStatement${String(p.id).replace(/\D/g,"")}`;
+
+  let html = "";
+  html += row("Problem Statement ID", esc(p.id));
+  html += row("Title", esc(p.title));
+  html += row("Problem Creater's Name", esc(p.creator_name || p.problem_creator_name || ""));
+  html += row("Problem Creater's Organization", esc(p.organization));
+  html += row("Problem Creater's Department", esc(p.department));
+
+  if(ideasDisplay){
+    html += row("Submitted Ideas", esc(ideasDisplay));
+  }
+
+  html += `<tr>
+    <th style="vertical-align:top;">Description</th>
+    <td><div class="description">${desc}</div></td>
+  </tr>`;
+
+  html += row("Youtube Link", yt);
+  html += row("Technology Bucket", esc(p.theme));
+  html += row("Category", esc(p.category));
+  html += row("Problem Statement Type", esc(p.problem_statement_type || ""));
+  html += row("Dataset Link", dataset);
+  html += row("Contact info", contact);
+  html += row("Official Portal Link", `<a href="${esc(officialUrl)}" target="_blank" rel="noopener noreferrer">${esc(officialUrl)}</a>`);
+
+  document.getElementById("modalRows").innerHTML = html;
+  
+  // Guarantee all links in the modal description and cells are clickable
+  autoLinkifyContainer(document.getElementById("modalRows"));
+
+  document.getElementById("overlay").style.display = "block";
+  document.body.style.overflow = "hidden";
+}
+
+function closeModal(){
+  document.getElementById("overlay").style.display = "none";
+  document.body.style.overflow = "";
+  currentModalPsId = null;
+}
+
+document.getElementById("overlay").addEventListener("click", e => {
+  if(e.target.id === "overlay") closeModal();
+});
+document.addEventListener("keydown", e => {
+  if(e.key === "Escape") closeModal();
+});
+
+// Setup All Sidebar and Controls Event Listeners
+function setupEventListeners(){
+  const searchInput = document.getElementById("search");
+  if(searchInput){
+    searchInput.addEventListener("input", e => {
+      filterState.search = e.target.value.trim();
+      filterState.page = 1;
+      applyFilters();
+    });
+  }
+
+  document.querySelectorAll("#categoryGroup .btn-segment").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const cat = btn.getAttribute("data-category");
+      filterState.category = cat;
+      filterState.page = 1;
+      document.querySelectorAll("#categoryGroup .btn-segment").forEach(b => b.classList.remove("active"));
+      btn.classList.add("active");
+      applyFilters();
+    });
+  });
+
+  document.querySelectorAll("#techTagsContainer .tech-tag-pill").forEach(pill => {
+    pill.addEventListener("click", () => {
+      const tid = pill.getAttribute("data-tech-id");
+      const idx = filterState.technologies.indexOf(tid);
+      if(idx >= 0){
+        filterState.technologies.splice(idx, 1);
+        pill.classList.remove("active");
+      }else{
+        filterState.technologies.push(tid);
+        pill.classList.add("active");
+      }
+      filterState.page = 1;
+      applyFilters();
+    });
+  });
+
+  const themeSelect = document.getElementById("themeSelect");
+  if(themeSelect){
+    themeSelect.addEventListener("change", e => {
+      filterState.theme = e.target.value;
+      filterState.page = 1;
+      applyFilters();
+    });
+  }
+
+  const orgSelect = document.getElementById("orgSelect");
+  if(orgSelect){
+    orgSelect.addEventListener("change", e => {
+      filterState.organization = e.target.value;
+      filterState.department = "";
+      filterState.page = 1;
+      updateDepartmentOptions();
+      applyFilters();
+    });
+  }
+
+  const deptSelect = document.getElementById("deptSelect");
+  if(deptSelect){
+    deptSelect.addEventListener("change", e => {
+      filterState.department = e.target.value;
+      filterState.page = 1;
+      applyFilters();
+    });
+  }
+
+  const chkDataset = document.getElementById("filterHasDataset");
+  if(chkDataset){
+    chkDataset.addEventListener("change", e => {
+      filterState.hasDataset = e.target.checked;
+      filterState.page = 1;
+      applyFilters();
+    });
+  }
+
+  const chkLinks = document.getElementById("filterHasLinks");
+  if(chkLinks){
+    chkLinks.addEventListener("change", e => {
+      filterState.hasLinks = e.target.checked;
+      filterState.page = 1;
+      applyFilters();
+    });
+  }
+
+  const chkVideo = document.getElementById("filterHasVideo");
+  if(chkVideo){
+    chkVideo.addEventListener("change", e => {
+      filterState.hasVideo = e.target.checked;
+      filterState.page = 1;
+      applyFilters();
+    });
+  }
+
+  const chkContact = document.getElementById("filterHasContact");
+  if(chkContact){
+    chkContact.addEventListener("change", e => {
+      filterState.hasContact = e.target.checked;
+      filterState.page = 1;
+      applyFilters();
+    });
+  }
+
+  const chkFavs = document.getElementById("filterFavoritesOnly");
+  if(chkFavs){
+    chkFavs.addEventListener("change", e => {
+      filterState.favoritesOnly = e.target.checked;
+      filterState.page = 1;
+      applyFilters();
+    });
+  }
+
+  const sortSelect = document.getElementById("sortSelect");
+  if(sortSelect){
+    sortSelect.addEventListener("change", e => {
+      filterState.sort = e.target.value;
+      applyFilters();
+    });
+  }
+
+  const resetBtn = document.getElementById("resetFiltersBtn");
+  if(resetBtn){
+    resetBtn.addEventListener("click", resetFilters);
+  }
+
+  const syncBtn = document.getElementById("syncBtn");
+  if(syncBtn){
+    syncBtn.addEventListener("click", () => syncLiveSubmissions(true));
+  }
+}
+
+async function fetchInitialDataset(){
+  const sources = [
+    STATEMENTS_API_URL,
+    LOCAL_DATA_URL,
+    GITHUB_DATA_URL
+  ];
+
+  for(const src of sources){
+    try{
+      const r = await fetch(src + (src.includes("?") ? "&" : "?") + "t=" + Date.now(), {cache: "no-store"});
+      if(r.ok){
+        const json = await r.json();
+        const items = json.problem_statements || (Array.isArray(json) ? json : []);
+        if(items.length > 0) return items;
+      }
+    }catch(_err){}
+  }
+  throw new Error("Unable to load initial problem statements dataset.");
+}
+
+function updateStatusText(text){
+  const el = document.getElementById("liveStatus");
+  if(el) el.textContent = text;
+}
+
+function formatTimeString(isoString){
+  try{
+    if(!isoString) return new Date().toLocaleTimeString();
+    const d = new Date(isoString);
+    if(isNaN(d.getTime())) return new Date().toLocaleTimeString();
+    return d.toLocaleTimeString();
+  }catch(_e){
+    return new Date().toLocaleTimeString();
+  }
+}
+
+async function syncLiveSubmissions(force = false){
+  const btn = document.getElementById("syncBtn");
+  if(btn){
+    btn.disabled = true;
+    btn.textContent = "Syncing...";
+  }
+  updateStatusText("Live submission data: Updating...");
+
+  try{
+    const url = SUBMISSIONS_API_URL + (force ? "?force=true" : "") + (force ? "&" : "?") + "t=" + Date.now();
+    const resp = await fetch(url, {cache: "no-store"});
+    
+    if(!resp.ok && resp.status !== 503){
+      throw new Error(`HTTP ${resp.status}`);
+    }
+
+    const payload = await resp.json();
+
+    if(payload.success && payload.data && Object.keys(payload.data).length > 0){
+      hasEverSyncedSuccessfully = true;
+      const liveData = payload.data;
+      let matchedCount = 0;
+
+      records.forEach(p => {
+        const livePS = liveData[p.id];
+        if(livePS){
+          matchedCount++;
+          p.submitted_ideas = {
+            submitted: livePS.submitted,
+            capacity: livePS.capacity,
+            display: livePS.display,
+            raw: livePS.display,
+            count: livePS.submitted
+          };
+        }
+      });
+
+      applyFilters();
+
+      const timeStr = formatTimeString(payload.updated_at);
+      document.getElementById("subtitle").textContent = `Live SIH sync • ${records.length} PS (${matchedCount} live counts)`;
+
+      if(payload.stale){
+        updateStatusText("SIH sync unavailable — showing last successful data.");
+      }else if(payload.cached){
+        updateStatusText("Live submission data: Cached");
+      }else{
+        updateStatusText(`Live submission data: Updated ${timeStr}`);
+      }
+    }else{
+      if(hasEverSyncedSuccessfully){
+        updateStatusText("SIH sync unavailable — showing last successful data.");
+      }else{
+        updateStatusText("Live SIH data unavailable — showing stored dataset.");
+      }
+    }
+  }catch(err){
+    console.warn("SIH live sync request failed:", err);
+    if(hasEverSyncedSuccessfully){
+      updateStatusText("SIH sync unavailable — showing last successful data.");
+    }else{
+      updateStatusText("Live SIH data unavailable — showing stored dataset.");
+    }
+  }finally{
+    if(btn){
+      btn.disabled = false;
+      btn.textContent = "↻ Sync Now";
+    }
+  }
+}
+
+function startAutoRefresh(){
+  if(autoRefreshIntervalId !== null){
+    clearInterval(autoRefreshIntervalId);
+    autoRefreshIntervalId = null;
+  }
+  autoRefreshIntervalId = setInterval(() => {
+    syncLiveSubmissions(false);
+  }, AUTO_SYNC_MS);
+}
+
+async function init(){
+  try{
+    readStateFromUrl();
+    records = await fetchInitialDataset();
+    document.getElementById("subtitle").textContent = `${records.length} Problem Statements loaded.`;
+
+    populateFilterDropdowns();
+    updateFavCountBadge();
+    setupEventListeners();
+    syncUIWithState();
+    applyFilters();
+
+    await syncLiveSubmissions(false);
+    startAutoRefresh();
+  }catch(e){
+    document.getElementById("app").className = "error";
+    document.getElementById("app").innerHTML =
+      `<b>Could not load the SIH dataset.</b><br><br>${esc(e.message)}<br><br>
+       Please verify your backend server or network connection and refresh.`;
+    updateStatusText("Dataset load error.");
+  }
+}
+
+init();
+</script>
+</body>
+</html>
