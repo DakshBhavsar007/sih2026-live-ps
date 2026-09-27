@@ -1256,19 +1256,19 @@ async function fetchInitialDataset(){
   throw new Error("Unable to load initial problem statements dataset.");
 }
 
-function updateStatusText(text){
+function updateStatusText(html){
   const el = document.getElementById("liveStatus");
-  if(el) el.textContent = text;
+  if(el) el.innerHTML = html;
 }
 
 function formatTimeString(isoString){
   try{
-    if(!isoString) return new Date().toLocaleTimeString();
+    if(!isoString) return new Date().toLocaleTimeString('en-IN', {hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true});
     const d = new Date(isoString);
-    if(isNaN(d.getTime())) return new Date().toLocaleTimeString();
-    return d.toLocaleTimeString();
+    if(isNaN(d.getTime())) return new Date().toLocaleTimeString('en-IN', {hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true});
+    return d.toLocaleTimeString('en-IN', {hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true});
   }catch(_e){
-    return new Date().toLocaleTimeString();
+    return new Date().toLocaleTimeString('en-IN', {hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true});
   }
 }
 
@@ -1278,7 +1278,7 @@ async function syncLiveSubmissions(force = false){
     btn.disabled = true;
     btn.textContent = "Syncing...";
   }
-  updateStatusText("Live submission data: Updating...");
+  updateStatusText("<span style='color:#6b7280;'>🔄 Syncing live data...</span>");
 
   try{
     const url = SUBMISSIONS_API_URL + (force ? "?force=true" : "") + (force ? "&" : "?") + "t=" + Date.now();
@@ -1312,20 +1312,21 @@ async function syncLiveSubmissions(force = false){
       applyFilters();
 
       const timeStr = formatTimeString(payload.updated_at);
-      document.getElementById("subtitle").textContent = `Live SIH sync • ${records.length} PS (${matchedCount} live counts)`;
+      const subEl = document.getElementById("subtitle");
+      if(subEl){
+        subEl.innerHTML = `Live SIH Sync • <b>${records.length} PS</b> • Last Updated: <b style="color:#059669;">${timeStr}</b>`;
+      }
 
       if(payload.stale){
-        updateStatusText("SIH sync unavailable — showing last successful data.");
-      }else if(payload.cached){
-        updateStatusText("Live submission data: Cached");
+        updateStatusText(`<span style="color:#d97706;" title="Showing stored cache">⚠️ Cached: <b>${timeStr}</b></span>`);
       }else{
-        updateStatusText(`Live submission data: Updated ${timeStr}`);
+        updateStatusText(`<span style="color:#059669;" title="Live synced from official portal">🟢 Live Synced: <b>${timeStr}</b></span>`);
       }
     }else{
       if(hasEverSyncedSuccessfully){
-        updateStatusText("SIH sync unavailable — showing last successful data.");
+        updateStatusText("<span style='color:#d97706;'>⚠️ Sync unavailable — showing cached data</span>");
       }else{
-        updateStatusText("Live SIH data unavailable — showing stored dataset.");
+        updateStatusText("<span style='color:#6b7280;'>Showing baseline dataset</span>");
       }
     }
   }catch(err){
