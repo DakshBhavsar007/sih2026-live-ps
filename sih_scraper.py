@@ -60,7 +60,8 @@ def load_baseline_data():
 _cache = {
     "data": load_baseline_data(),
     "updated_at": datetime.now(timezone.utc).isoformat(),
-    "last_success_timestamp": 0
+    "last_success_timestamp": time.time(),
+    "last_attempt_timestamp": 0
 }
 
 def set_cached_submissions(new_data):
@@ -75,6 +76,7 @@ def set_cached_submissions(new_data):
     _cache["data"] = new_data
     _cache["updated_at"] = iso_now
     _cache["last_success_timestamp"] = now
+    _cache["last_attempt_timestamp"] = now
     logger.info(f"Manual cache update succeeded with {len(new_data)} entries.")
     return True
 
@@ -273,7 +275,8 @@ def get_live_submissions(force_refresh=False):
     Retrieves live submission counts with:
     - 5-minute TTL caching
     - Pre-populated baseline dataset (never returns empty or 503)
-    - Graceful degradation if SIH portal is down/slow
+    - Cooldown protection against hammering geo-blocked endpoints
+    - Graceful degradation if SIH portal is down/geo-blocked
     - Forced refresh option for manual 'Sync Now'
     """
     global _cache
@@ -281,19 +284,27 @@ def get_live_submissions(force_refresh=False):
     iso_now = datetime.now(timezone.utc).isoformat()
 
     has_cache = _cache["data"] is not None and len(_cache["data"]) > 0
-    cache_age = now - _cache["last_success_timestamp"]
+    cache_age = now - _cache.get("last_success_timestamp", 0)
     is_cache_fresh = has_cache and (cache_age < CACHE_TTL_SECONDS)
 
-    # Return cached data if fresh and no forced refresh requested
-    if is_cache_fresh and not force_refresh:
-        return {
-            "success": True,
-            "source": SIH_SOURCE_URL,
-            "updated_at": _cache["updated_at"],
-            "cached": True,
-            "stale": False,
-            "data": _cache["data"]
-        }
+    # Check cooldown after a previous failed attempt (prevents repeated 403 on every page load)
+    attempt_age = now - _cache.get("last_attempt_timestamp", 0)
+    is_cooling_down = attempt_age < CACHE_TTL_SECONDS
+
+    # Return cached data if fresh or currently in cooldown period
+    if has_cache and not force_refresh:
+        if is_cache_fresh or is_cooling_down:
+            return {
+                "success": True,
+                "source": SIH_SOURCE_URL,
+                "updated_at": _cache["updated_at"],
+                "cached": True,
+                "stale": not is_cache_fresh,
+                "data": _cache["data"]
+            }
+
+    # Record this scrape attempt timestamp
+    _cache["last_attempt_timestamp"] = now
 
     # Attempt to fetch fresh data from SIH
     try:
@@ -313,8 +324,12 @@ def get_live_submissions(force_refresh=False):
             "data": new_data
         }
     except Exception as e:
-        logger.error(f"Error fetching/parsing live SIH data: {e}")
-        # Always return valid cached/baseline data marked as stale, never empty
+        # If 403, log informative warning explaining NIC firewall geo-blocking
+        if "403" in str(e):
+            logger.info(f"Official SIH portal geo-blocked cloud IP (HTTP 403 Forbidden). Serving cached baseline dataset. Cooldown: {CACHE_TTL_SECONDS}s.")
+        else:
+            logger.warning(f"Error fetching/parsing live SIH data: {e}. Serving cached data. Cooldown: {CACHE_TTL_SECONDS}s.")
+
         fallback = _cache["data"] or load_baseline_data()
         return {
             "success": True,
@@ -322,7 +337,7 @@ def get_live_submissions(force_refresh=False):
             "updated_at": _cache["updated_at"] or iso_now,
             "cached": True,
             "stale": True,
-            "warning": "SIH sync unavailable — showing last successful data.",
+            "warning": "SIH live sync currently geo-blocked on cloud datacenter — serving cached data.",
             "error": str(e),
             "data": fallback
         }
