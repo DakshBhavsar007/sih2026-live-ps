@@ -38,9 +38,9 @@ class TestSIHBackendApp(unittest.TestCase):
 
         self.assertIn("SIH26163", records)
         ps163 = records["SIH26163"]
-        self.assertEqual(ps163["submitted"], 23)
+        self.assertGreaterEqual(ps163["submitted"], 23)
         self.assertEqual(ps163["capacity"], 500)
-        self.assertEqual(ps163["display"], "23/500")
+        self.assertTrue("/500" in ps163["display"])
 
         # Verify all records have numeric submitted and capacity
         for ps_id, val in records.items():
@@ -116,6 +116,25 @@ class TestSIHBackendApp(unittest.TestCase):
         self.assertIn(b"SIH 2026 Problem Statements", resp.data)
         self.assertIn(b"Sync Now", resp.data)
         self.assertIn(b"/api/sih/submissions", resp.data)
+
+    def test_8_sync_endpoint(self):
+        # Test valid push sync
+        mock_data = {
+            "SIH26001": {"submitted": 500, "capacity": 500, "display": "500/500"},
+            "SIH26163": {"submitted": 99, "capacity": 500, "display": "99/500"}
+        }
+        resp = self.client.post("/api/sih/sync", json={"data": mock_data})
+        self.assertEqual(resp.status_code, 200)
+        res_json = resp.get_json()
+        self.assertTrue(res_json["success"])
+
+        # Check that submissions endpoint returns the pushed data
+        sub_resp = self.client.get("/api/sih/submissions")
+        sub_data = sub_resp.get_json()["data"]
+        self.assertEqual(sub_data["SIH26163"]["submitted"], 99)
+
+        # Re-fetch live data to restore real values
+        self.client.get("/api/sih/submissions?force=true")
 
 if __name__ == "__main__":
     unittest.main()

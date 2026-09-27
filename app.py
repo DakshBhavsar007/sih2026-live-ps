@@ -3,7 +3,7 @@ import json
 import logging
 from flask import Flask, jsonify, request, send_from_directory
 from flask_cors import CORS
-from sih_scraper import get_live_submissions, CACHE_TTL_SECONDS, SIH_SOURCE_URL
+from sih_scraper import get_live_submissions, set_cached_submissions, CACHE_TTL_SECONDS, SIH_SOURCE_URL
 
 # Setup logging
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
@@ -17,6 +17,7 @@ CORS(app, resources={r"/api/*": {"origins": cors_origin}})
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 STATEMENTS_JSON_PATH = os.path.join(BASE_DIR, "sih2026_problem_statements.json")
+SYNC_SECRET = os.environ.get("SYNC_SECRET", "")
 
 @app.route("/api/sih/submissions", methods=["GET"])
 def submissions_endpoint():
@@ -30,6 +31,35 @@ def submissions_endpoint():
     force = request.args.get("force", "").lower() in ("true", "1", "yes")
     result = get_live_submissions(force_refresh=force)
     return jsonify(result), 200
+
+@app.route("/api/sih/sync", methods=["POST"])
+def sync_endpoint():
+    """
+    Push Sync Endpoint:
+    Allows pushing newly scraped submission counts directly into memory cache.
+    Bypasses NIC firewall cloud IP blocking by receiving updates scraped from Indian clients/workers.
+    """
+    if SYNC_SECRET:
+        token = request.headers.get("X-Sync-Token") or request.args.get("token")
+        if token != SYNC_SECRET:
+            return jsonify({"error": "Unauthorized"}), 401
+
+    payload = request.get_json(silent=True)
+    if not payload:
+        return jsonify({"error": "Invalid or missing JSON payload"}), 400
+
+    data_dict = payload.get("data") if isinstance(payload, dict) and "data" in payload else payload
+    if not isinstance(data_dict, dict) or len(data_dict) == 0:
+        return jsonify({"error": "Payload must contain a non-empty dictionary"}), 400
+
+    success = set_cached_submissions(data_dict)
+    if success:
+        return jsonify({
+            "success": True,
+            "message": f"Successfully updated cache with {len(data_dict)} problem statements",
+            "count": len(data_dict)
+        }), 200
+    return jsonify({"error": "Failed to update cache"}), 500
 
 @app.route("/api/sih/statements", methods=["GET"])
 def statements_endpoint():

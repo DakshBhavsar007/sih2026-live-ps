@@ -63,20 +63,51 @@ _cache = {
     "last_success_timestamp": 0
 }
 
+def set_cached_submissions(new_data):
+    """
+    Manually update the submission count cache (e.g., via push sync from client or Indian proxy).
+    """
+    global _cache
+    if not new_data or not isinstance(new_data, dict):
+        return False
+    now = time.time()
+    iso_now = datetime.now(timezone.utc).isoformat()
+    _cache["data"] = new_data
+    _cache["updated_at"] = iso_now
+    _cache["last_success_timestamp"] = now
+    logger.info(f"Manual cache update succeeded with {len(new_data)} entries.")
+    return True
+
 def fetch_sih_html(url=None, timeout=None):
     """
-    Fetch the raw HTML from the official SIH 2026 PS portal using a realistic browser User-Agent.
-    Uses requests if available, with urllib as fallback.
+    Fetch raw HTML from the official SIH portal.
+    Uses realistic modern browser headers, requests.Session with cookie warmup,
+    proxy support (SIH_PROXY / HTTP_PROXY / HTTPS_PROXY), and urllib fallback.
     """
     target_url = url or SIH_SOURCE_URL
     req_timeout = timeout or SCRAPE_TIMEOUT_SECONDS
 
-    headers = {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36",
-        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
-        "Accept-Language": "en-US,en;q=0.9",
-        "Cache-Control": "no-cache",
-        "Pragma": "no-cache",
+    # Proxy support if set in environment (e.g., for routing through an Indian proxy)
+    proxy_url = os.environ.get("SIH_PROXY") or os.environ.get("HTTPS_PROXY") or os.environ.get("HTTP_PROXY")
+    proxies = {"http": proxy_url, "https": proxy_url} if proxy_url else None
+    if proxies:
+        logger.info(f"Using proxy: {proxy_url}")
+
+    browser_headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/133.0.0.0 Safari/537.36",
+        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7",
+        "Accept-Language": "en-US,en;q=0.9,hi;q=0.8",
+        "Accept-Encoding": "gzip, deflate",
+        "Dnt": "1",
+        "Sec-Ch-Ua": '"Not(A:Brand";v="99", "Google Chrome";v="133", "Chromium";v="133"',
+        "Sec-Ch-Ua-Mobile": "?0",
+        "Sec-Ch-Ua-Platform": '"Windows"',
+        "Sec-Fetch-Dest": "document",
+        "Sec-Fetch-Mode": "navigate",
+        "Sec-Fetch-Site": "same-origin",
+        "Sec-Fetch-User": "?1",
+        "Upgrade-Insecure-Requests": "1",
+        "Referer": "https://www.sih.gov.in/",
         "Connection": "keep-alive"
     }
 
@@ -84,11 +115,37 @@ def fetch_sih_html(url=None, timeout=None):
     if HAS_REQUESTS:
         try:
             logger.info(f"Fetching official SIH page via requests: {target_url} (timeout: {req_timeout}s)")
-            r = requests.get(target_url, headers=headers, timeout=req_timeout, verify=False)
-            if r.status_code == 200 and len(r.text) > 10000:
+            session = requests.Session()
+            session.headers.update(browser_headers)
+            if proxies:
+                session.proxies.update(proxies)
+
+            # First attempt with standard verification
+            r = None
+            try:
+                r = session.get(target_url, timeout=req_timeout, allow_redirects=True)
+            except requests.exceptions.SSLError:
+                logger.warning("SSL verification failed, retrying with verify=False...")
+                r = session.get(target_url, timeout=req_timeout, verify=False, allow_redirects=True)
+
+            if r and r.status_code == 200 and len(r.text) > 10000:
                 logger.info(f"Successfully fetched {len(r.text)} characters from SIH via requests.")
                 return r.text
-            logger.warning(f"requests returned HTTP {r.status_code}, falling back to urllib.")
+
+            # If 403 or blocked, try warming session cookies on root portal first
+            if r and r.status_code == 403:
+                logger.warning(f"Direct access returned 403. Attempting session cookie warmup on homepage...")
+                try:
+                    session.get("https://www.sih.gov.in/", timeout=10, allow_redirects=True)
+                    r = session.get(target_url, timeout=req_timeout, allow_redirects=True)
+                    if r.status_code == 200 and len(r.text) > 10000:
+                        logger.info(f"Successfully fetched {len(r.text)} characters after cookie warmup.")
+                        return r.text
+                except Exception as warm_err:
+                    logger.warning(f"Homepage warmup failed: {warm_err}")
+
+            if r:
+                logger.warning(f"requests returned HTTP {r.status_code}, falling back to urllib.")
         except Exception as err:
             logger.warning(f"requests failed: {err}, falling back to urllib.")
 
@@ -97,7 +154,7 @@ def fetch_sih_html(url=None, timeout=None):
     ctx.check_hostname = False
     ctx.verify_mode = ssl.CERT_NONE
 
-    req = urllib.request.Request(target_url, headers=headers)
+    req = urllib.request.Request(target_url, headers=browser_headers)
     logger.info(f"Fetching official SIH page via urllib: {target_url} (timeout: {req_timeout}s)")
     with urllib.request.urlopen(req, context=ctx, timeout=req_timeout) as resp:
         if resp.status != 200:

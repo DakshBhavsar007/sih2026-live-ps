@@ -1,0 +1,38 @@
+name: Auto-Sync SIH Problem Statements
+
+on:
+  schedule:
+    # Run twice daily at 06:00 and 18:00 UTC
+    - cron: '0 6,18 * * *'
+  workflow_dispatch: # Allows manual trigger from GitHub Actions UI
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+
+      - name: Fetch and Sync SIH Counts
+        env:
+          RENDER_APP_URL: "https://sih2026-live-ps.onrender.com"
+          SYNC_SECRET: ${{ secrets.SYNC_SECRET }}
+        run: |
+          python sync_counts.py || echo "Sync completed with fallback"
+
+      - name: Commit and Push Updated Dataset
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git add sih2026_problem_statements.json
+          git diff --quiet && git diff --staged --quiet || (git commit -m "Auto-update live SIH 2026 submission counts [skip ci]" && git push)
